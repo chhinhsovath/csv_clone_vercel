@@ -17,8 +17,7 @@
     "ioredis": "^5.3.2",
     "axios": "^1.6.2",
     "date-fns": "^2.30.0",
-    "vm2": "^3.9.20",
-    "isolated-vm": "^4.7.2"
+    "vm2": "^3.9.20"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
