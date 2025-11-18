@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/auth-store'
 import { Lock, Mail } from 'lucide-react'
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { login, isLoading, error } = useAuthStore()
@@ -145,5 +145,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   )
 }
