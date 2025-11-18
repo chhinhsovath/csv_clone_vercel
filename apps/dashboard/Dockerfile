@@ -1,30 +1,25 @@
-FROM node:20-alpine AS base
+FROM node:20-alpine
+
 WORKDIR /app
 
+# Copy package files
+COPY apps/dashboard/package.json ./
+COPY apps/dashboard/tsconfig.json ./
+COPY apps/dashboard/next.config.js ./
+COPY apps/dashboard/.eslintrc.json ./
+COPY apps/dashboard/app ./app
+COPY apps/dashboard/lib ./lib
+COPY apps/dashboard/public ./public
+
 # Install dependencies
-FROM base AS deps
-COPY package.json ./
 RUN npm install
 
-# Build application
-FROM base AS builder
-COPY package.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-
-# Production runtime
-FROM base AS runner
-ENV NODE_ENV production
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
-
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-
-USER nextjs
+# Expose port
 EXPOSE 3000
-ENV PORT 3000
 
-CMD ["node", "server.js"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" || exit 0
+
+# Start in development mode with tsx
+CMD ["npm", "run", "dev"]
