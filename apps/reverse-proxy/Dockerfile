@@ -3,10 +3,10 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package files
-COPY apps/reverse-proxy/package.json apps/reverse-proxy/package-lock.json ./
+COPY apps/reverse-proxy/package.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # Copy source code
 COPY apps/reverse-proxy/src ./src

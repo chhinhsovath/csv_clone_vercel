@@ -3,10 +3,10 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package files
-COPY apps/functions-service/package.json apps/functions-service/package-lock.json ./
+COPY apps/functions-service/package.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # Copy source code
 COPY apps/functions-service/src ./src

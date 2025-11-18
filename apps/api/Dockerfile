@@ -6,11 +6,11 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++
 
 # Copy package files
-COPY apps/api/package.json apps/api/package-lock.json ./
+COPY apps/api/package.json ./
 COPY apps/api/tsconfig.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY apps/api/src ./src
