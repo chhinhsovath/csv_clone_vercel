@@ -15,8 +15,8 @@ RUN npm ci
 # Copy source code
 COPY src ./src
 
-# Copy Prisma schema
-COPY ../../prisma ./prisma
+# Copy Prisma schema (from root directory context)
+COPY prisma ./prisma
 
 # Generate Prisma client
 RUN npm run db:generate

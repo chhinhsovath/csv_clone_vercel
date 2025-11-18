@@ -56,8 +56,8 @@ services:
   # API Server
   api:
     build:
-      context: ./apps/api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./apps/api/Dockerfile
     container_name: vercel_clone_api
     environment:
       NODE_ENV: ${NODE_ENV:-development}
