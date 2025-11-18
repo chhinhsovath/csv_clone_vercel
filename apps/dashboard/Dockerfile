@@ -2,7 +2,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files
+# Copy configuration files
 COPY package.json tsconfig.json next.config.js ./
 
 # Install dependencies
@@ -11,7 +11,6 @@ RUN npm install
 # Copy source code
 COPY app ./app
 COPY lib ./lib
-COPY public ./public
 
 # Expose port
 EXPOSE 3000
