@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useAuthStore } from '@/lib/auth-store'
 import { useRouter } from 'next/navigation'
 import { User, LogOut, Settings } from 'lucide-react'
