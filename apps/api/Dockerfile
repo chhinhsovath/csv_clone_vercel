@@ -18,9 +18,6 @@ COPY apps/api/src ./src
 # Copy Prisma schema (from root directory context)
 COPY prisma ./prisma
 
-# Generate Prisma client
-RUN npm run db:generate
-
 # Build TypeScript
 RUN npm run build
 
