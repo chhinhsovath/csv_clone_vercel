@@ -6,14 +6,14 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++
 
 # Copy package files
-COPY package.json package-lock.json ./
-COPY tsconfig.json ./
+COPY apps/api/package.json apps/api/package-lock.json ./
+COPY apps/api/tsconfig.json ./
 
 # Install dependencies
 RUN npm ci
 
 # Copy source code
-COPY src ./src
+COPY apps/api/src ./src
 
 # Copy Prisma schema (from root directory context)
 COPY prisma ./prisma

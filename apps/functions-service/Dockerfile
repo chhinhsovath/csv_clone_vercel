@@ -3,14 +3,14 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json ./
+COPY apps/functions-service/package.json apps/functions-service/package-lock.json ./
 
 # Install dependencies
 RUN npm ci --only=production
 
 # Copy source code
-COPY src ./src
-COPY tsconfig.json ./
+COPY apps/functions-service/src ./src
+COPY apps/functions-service/tsconfig.json ./
 
 # Build TypeScript
 RUN npm run build

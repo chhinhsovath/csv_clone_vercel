@@ -5,11 +5,12 @@ WORKDIR /app
 # Install Git
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
-# Copy files
-COPY package.json package-lock.json ./
+# Copy package files
+COPY apps/build-service/package.json apps/build-service/package-lock.json ./
 RUN npm ci
 
-COPY . .
+# Copy source code
+COPY apps/build-service ./
 
 # Expose Docker socket for building containers
 VOLUME ["/var/run/docker.sock"]

@@ -86,8 +86,8 @@ services:
   # Build Service
   build-service:
     build:
-      context: ./apps/build-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./apps/build-service/Dockerfile
     container_name: vercel_clone_build_service
     environment:
       NODE_ENV: ${NODE_ENV:-development}
@@ -112,8 +112,8 @@ services:
   # Reverse Proxy/Router
   reverse-proxy:
     build:
-      context: ./apps/reverse-proxy
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./apps/reverse-proxy/Dockerfile
     container_name: vercel_clone_proxy
     environment:
       MINIO_ENDPOINT: minio:9000
@@ -133,8 +133,8 @@ services:
   # Functions Service
   functions-service:
     build:
-      context: ./apps/functions-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./apps/functions-service/Dockerfile
     container_name: vercel_clone_functions_service
     environment:
       NODE_ENV: ${NODE_ENV:-development}

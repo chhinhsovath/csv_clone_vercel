@@ -3,14 +3,14 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json ./
+COPY apps/reverse-proxy/package.json apps/reverse-proxy/package-lock.json ./
 
 # Install dependencies
 RUN npm ci --only=production
 
 # Copy source code
-COPY src ./src
-COPY tsconfig.json ./
+COPY apps/reverse-proxy/src ./src
+COPY apps/reverse-proxy/tsconfig.json ./
 
 # Build TypeScript
 RUN npm run build
