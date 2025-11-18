@@ -1,0 +1,126 @@
+HTTP BASIC AUTHENTICATION - QUICK REFERENCE
+===========================================
+
+MAIN FUNCTIONS
+--------------
+
+1. create_htpasswd(subdomain, username, password)
+   - Creates htpasswd file with bcrypt hashing
+   - Location: /etc/nginx/.htpasswd_[subdomain]
+   - Permissions: 640 (root:root)
+   - Auto-installs apache2-utils if needed
+
+2. add_auth_to_config(subdomain)
+   - Adds auth_basic directives to nginx config
+   - Tests and reloads nginx
+   - Automatic rollback on failure
+
+3. setup_basic_auth(subdomain, username, password)
+   - Combined function: creates htpasswd + adds to config
+   - One-step authentication setup
+
+4. setup_basic_auth_interactive(subdomain)
+   - Interactive version with password prompts
+   - Secure input (no echo)
+   - Password confirmation
+
+5. remove_basic_auth(subdomain)
+   - Removes auth directives from config
+   - Deletes htpasswd file
+   - Tests and reloads nginx
+
+6. is_auth_configured(subdomain)
+   - Check if auth is enabled
+   - Returns: 0 = enabled, 1 = disabled
+
+USAGE EXAMPLES
+--------------
+
+# Interactive setup
+setup_basic_auth_interactive "api.openplp.org"
+
+# Non-interactive setup
+setup_basic_auth "api.openplp.org" "admin" "password123"
+
+# Check status
+if is_auth_configured "api.openplp.org"; then
+    echo "Auth enabled"
+fi
+
+# Remove auth
+remove_basic_auth "api.openplp.org"
+
+FILE LOCATIONS
+--------------
+
+htpasswd files:  /etc/nginx/.htpasswd_[subdomain]
+Nginx configs:   /etc/nginx/sites-available/[subdomain]
+Permissions:     640 (owner: root, group: root)
+
+SECURITY FEATURES
+-----------------
+
+✓ Bcrypt password hashing
+✓ Secure password input (no echo)
+✓ File permissions: 640
+✓ Root ownership
+✓ Automatic backup and rollback
+✓ Nginx configuration testing
+✓ Password confirmation (interactive mode)
+
+REQUIREMENTS
+------------
+
+- apache2-utils (auto-installed)
+- nginx (should be installed)
+- Root privileges
+
+TESTING
+-------
+
+Run test suite:
+  sudo bash prd/lib/test_auth_functions.sh
+
+View demo:
+  bash prd/lib/demo_auth.sh
+
+DOCUMENTATION
+-------------
+
+Full docs:  prd/lib/AUTH_FUNCTIONS.md
+Summary:    prd/lib/TASK_6_IMPLEMENTATION_SUMMARY.md
+This file:  prd/lib/AUTH_QUICK_REFERENCE.txt
+
+ERROR HANDLING
+--------------
+
+All functions include:
+- Input validation
+- File existence checks
+- Backup before modifications
+- Nginx config testing
+- Automatic rollback on failure
+- Clear error messages with hints
+
+INTEGRATION
+-----------
+
+Ready for use in:
+- setup-subdomain.sh (interactive wizard)
+- quick-subdomain.sh (command-line tool)
+- manage-subdomains.sh (management interface)
+
+COMMON ISSUES
+-------------
+
+Issue: htpasswd command not found
+Fix:   Auto-installed by create_htpasswd()
+
+Issue: Permission denied
+Fix:   Run with sudo/root privileges
+
+Issue: Nginx test failed
+Fix:   Automatic rollback to previous config
+
+Issue: Passwords don't match
+Fix:   Interactive mode will re-prompt

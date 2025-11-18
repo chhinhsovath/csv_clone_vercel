@@ -1,0 +1,181 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: vercel_clone_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-vercel_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-vercel_password}
+      POSTGRES_DB: ${DB_NAME:-vercel_clone}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-vercel_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and job queue
+  redis:
+    image: redis:7-alpine
+    container_name: vercel_clone_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO for S3-compatible storage
+  minio:
+    image: minio/minio:latest
+    container_name: vercel_clone_minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:-minioadmin}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Server
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: vercel_clone_api
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgresql://${DB_USER:-vercel_user}:${DB_PASSWORD:-vercel_password}@postgres:5432/${DB_NAME:-vercel_clone}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key_change_this}
+      API_PORT: 9000
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_PASSWORD:-minioadmin}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+    ports:
+      - "9000:9000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./apps/api/src:/app/src
+    command: npm run dev
+
+  # Build Service
+  build-service:
+    build:
+      context: ./apps/build-service
+      dockerfile: Dockerfile
+    container_name: vercel_clone_build_service
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgresql://${DB_USER:-vercel_user}:${DB_PASSWORD:-vercel_password}@postgres:5432/${DB_NAME:-vercel_clone}
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_PASSWORD:-minioadmin}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./apps/build-service/src:/app/src
+      - build_cache:/tmp/builds
+    command: npm run dev
+
+  # Reverse Proxy/Router
+  reverse-proxy:
+    build:
+      context: ./apps/reverse-proxy
+      dockerfile: Dockerfile
+    container_name: vercel_clone_proxy
+    environment:
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_PASSWORD:-minioadmin}
+      API_ENDPOINT: http://api:9000
+    ports:
+      - "80:3000"
+      - "443:3001"
+    depends_on:
+      - api
+      - minio
+    volumes:
+      - ./apps/reverse-proxy/src:/app/src
+      - ./certs:/app/certs
+
+  # Functions Service
+  functions-service:
+    build:
+      context: ./apps/functions-service
+      dockerfile: Dockerfile
+    container_name: vercel_clone_functions_service
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgresql://${DB_USER:-vercel_user}:${DB_PASSWORD:-vercel_password}@postgres:5432/${DB_NAME:-vercel_clone}
+      API_ENDPOINT: http://api:9000
+      FUNCTIONS_PORT: 9001
+    ports:
+      - "9001:9001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_started
+    volumes:
+      - ./apps/functions-service/src:/app/src
+    command: npm run dev
+
+  # Frontend Dashboard
+  dashboard:
+    build:
+      context: ./apps/dashboard
+      dockerfile: Dockerfile
+    container_name: vercel_clone_dashboard
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:9000}
+      NODE_ENV: ${NODE_ENV:-development}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    volumes:
+      - ./apps/dashboard/src:/app/src
+      - ./apps/dashboard/app:/app/app
+    command: npm run dev
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  build_cache:
+
+networks:
+  default:
+    name: vercel_clone_network

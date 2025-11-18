@@ -1,0 +1,396 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  password_hash String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  projects Project[]
+  teams    Team[]
+  team_members TeamMember[]
+
+  @@map("users")
+}
+
+// Team for multi-user projects
+model Team {
+  id        String     @id @default(cuid())
+  name      String
+  owner_id  String
+  owner     User       @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  members TeamMember[]
+  projects Project[]
+
+  @@map("teams")
+}
+
+// Team membership with roles
+model TeamMember {
+  id        String     @id @default(cuid())
+  team_id   String
+  user_id   String
+  role      String     @default("member") // owner, admin, member
+
+  team      Team       @relation(fields: [team_id], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  created_at DateTime @default(now())
+
+  @@unique([team_id, user_id])
+  @@map("team_members")
+}
+
+// Project/Application to deploy
+model Project {
+  id                String     @id @default(cuid())
+  user_id           String?    // For backward compatibility
+  team_id           String?    // If owned by team
+  name              String
+  description       String?
+  git_repo_url      String
+  git_branch        String     @default("main")
+  build_command     String     @default("npm run build")
+  output_directory  String     @default("dist")
+  framework         String?    // next, react, vue, static, etc
+
+  user              User?      @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  team              Team?      @relation(fields: [team_id], references: [id], onDelete: SetNull)
+
+  deployments       Deployment[]
+  domains           Domain[]
+  environment_vars  EnvironmentVariable[]
+  functions         DeploymentFunction[]
+  build_logs        BuildLog[]
+  deployment_metrics DeploymentMetric[]
+  function_metrics  FunctionMetric[]
+  build_metrics     BuildMetric[]
+  error_logs        ErrorLog[]
+  alerts            Alert[]
+
+  created_at        DateTime   @default(now())
+  updated_at        DateTime   @updatedAt
+
+  @@map("projects")
+}
+
+// Deployment record
+model Deployment {
+  id              String     @id @default(cuid())
+  project_id      String
+  git_commit_sha  String
+  git_commit_msg  String?
+  git_branch      String     @default("main")
+  git_author      String?
+
+  status          String     @default("queued") // queued, building, deploying, success, failed
+  deployment_url  String?    // subdomain.vercel-clone.com
+
+  build_start_at  DateTime?
+  build_end_at    DateTime?
+
+  file_count      Int        @default(0)
+  build_size      BigInt     @default(0)
+
+  project         Project    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  build_logs      BuildLog[]
+  deployment_metric DeploymentMetric?
+  build_metric    BuildMetric?
+
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+
+  @@index([project_id])
+  @@index([status])
+  @@map("deployments")
+}
+
+// Build and deployment logs
+model BuildLog {
+  id              String     @id @default(cuid())
+  deployment_id   String?
+  project_id      String
+
+  log_type        String     // build, deploy, error, warning, info
+  message         String     @db.Text
+
+  deployment      Deployment? @relation(fields: [deployment_id], references: [id], onDelete: SetNull)
+  project         Project    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  timestamp       DateTime   @default(now())
+
+  @@index([deployment_id])
+  @@index([project_id])
+  @@map("build_logs")
+}
+
+// Custom domains
+model Domain {
+  id              String     @id @default(cuid())
+  project_id      String
+  domain_name     String     // custom-domain.com or subdomain.domain.com
+  is_verified     Boolean    @default(false)
+  ssl_status      String     @default("pending") // pending, active, failed, renewing
+
+  dns_cname_target String?   // Points to reverse proxy
+  ssl_cert_path   String?
+  ssl_key_path    String?
+  ssl_expires_at  DateTime?
+
+  project         Project    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+
+  @@unique([domain_name])
+  @@index([project_id])
+  @@map("domains")
+}
+
+// Environment variables
+model EnvironmentVariable {
+  id              String     @id @default(cuid())
+  project_id      String
+  key             String
+  value           String     @db.Text
+  is_build_time   Boolean    @default(false)
+  is_encrypted    Boolean    @default(true)
+
+  project         Project    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+
+  @@unique([project_id, key])
+  @@index([project_id])
+  @@map("environment_variables")
+}
+
+// Serverless functions
+model DeploymentFunction {
+  id              String     @id @default(cuid())
+  project_id      String
+  function_name   String
+  file_path       String     // api/hello.ts
+  runtime         String     @default("node18") // node18, node20, python39, etc
+
+  is_active       Boolean    @default(true)
+  invocation_count Int       @default(0)
+
+  project         Project    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+
+  @@unique([project_id, function_name])
+  @@index([project_id])
+  @@map("deployment_functions")
+}
+
+// Git integration tokens
+model GitToken {
+  id              String     @id @default(cuid())
+  user_id         String     @unique
+  provider        String     // github, gitlab, bitbucket
+  access_token    String     @db.Text
+  refresh_token   String?    @db.Text
+
+  provider_user_id String
+  provider_username String
+
+  expires_at      DateTime?
+
+  user            User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+
+  @@map("git_tokens")
+}
+
+// Webhooks for GitHub integration
+model Webhook {
+  id              String     @id @default(cuid())
+  project_id      String
+  provider        String     // github, gitlab
+  event_type      String     // push, pull_request
+  secret          String     @db.Text
+
+  is_active       Boolean    @default(true)
+  last_triggered  DateTime?
+
+  created_at      DateTime   @default(now())
+
+  @@index([project_id])
+  @@map("webhooks")
+}
+
+// API tokens for programmatic access
+model APIToken {
+  id              String     @id @default(cuid())
+  user_id         String
+  name            String
+  token           String     @unique @db.Text
+
+  last_used_at    DateTime?
+  expires_at      DateTime?
+
+  user            User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  created_at      DateTime   @default(now())
+
+  @@index([user_id])
+  @@map("api_tokens")
+}
+
+// Deployment metrics for analytics
+model DeploymentMetric {
+  id              String     @id @default(cuid())
+  deployment_id   String     @unique
+  project_id      String
+
+  status          String     // started, in_progress, success, failure
+  start_time      DateTime
+  end_time        DateTime?
+  duration_ms     Int?       // Duration in milliseconds
+
+  deployment      Deployment @relation(fields: [deployment_id], references: [id], onDelete: Cascade)
+  project         Project    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+
+  @@index([project_id])
+  @@index([deployment_id])
+  @@index([start_time])
+  @@map("deployment_metrics")
+}
+
+// Function invocation metrics
+model FunctionMetric {
+  id                        String     @id @default(cuid())
+  deployment_function_id    String     @unique
+  project_id                String
+
+  invocation_count          Int        @default(0)
+  avg_execution_time_ms     Float      @default(0)
+  error_count               Int        @default(0)
+  last_invoked_at           DateTime?
+
+  function                  DeploymentFunction @relation(fields: [deployment_function_id], references: [id], onDelete: Cascade)
+  project                   Project    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  created_at                DateTime   @default(now())
+  updated_at                DateTime   @updatedAt
+
+  @@index([project_id])
+  @@index([deployment_function_id])
+  @@map("function_metrics")
+}
+
+// Build metrics for analytics
+model BuildMetric {
+  id              String     @id @default(cuid())
+  deployment_id   String     @unique
+  project_id      String
+
+  start_time      DateTime
+  end_time        DateTime?
+  duration_ms     Int?
+
+  status          String     // success, failure
+  framework       String?
+  asset_count     Int        @default(0)
+  total_size_bytes BigInt    @default(0)
+
+  deployment      Deployment @relation(fields: [deployment_id], references: [id], onDelete: Cascade)
+  project         Project    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+
+  @@index([project_id])
+  @@index([deployment_id])
+  @@index([start_time])
+  @@map("build_metrics")
+}
+
+// API call metrics
+model ApiMetric {
+  id              String     @id @default(cuid())
+  endpoint        String
+  method          String     // GET, POST, PUT, DELETE
+  status_code     Int
+  response_time_ms Int
+  user_id         String?
+
+  created_at      DateTime   @default(now())
+
+  @@index([endpoint])
+  @@index([user_id])
+  @@index([created_at])
+  @@map("api_metrics")
+}
+
+// Error logs for error tracking
+model ErrorLog {
+  id              String     @id @default(cuid())
+  project_id      String
+
+  error_type      String     // DeploymentError, FunctionError, BuildError, etc
+  error_message   String
+  stack_trace     String?    @db.Text
+  context         String?    @db.Json // {deployment_id, function_id, etc}
+
+  severity        String     @default("medium") // low, medium, high, critical
+  resolved        Boolean    @default(false)
+
+  project         Project    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+
+  @@index([project_id])
+  @@index([severity])
+  @@index([created_at])
+  @@map("error_logs")
+}
+
+// Alerts configuration
+model Alert {
+  id              String     @id @default(cuid())
+  project_id      String
+
+  name            String
+  type            String     // error_rate, deployment_failure, function_error, etc
+  condition       Float      // Threshold value
+  time_window     Int        // Time window in minutes
+
+  enabled         Boolean    @default(true)
+  notification_channels String? @db.Text // JSON: [email, webhook, etc]
+
+  last_triggered  DateTime?
+
+  project         Project    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+
+  @@index([project_id])
+  @@map("alerts")
+}

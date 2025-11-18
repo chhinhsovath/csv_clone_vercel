@@ -1,0 +1,209 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║                    SUBDOMAIN SETUP QUICK REFERENCE                       ║
+║                         by Sovath.C - 2025                               ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ SETUP COMMANDS                                                           │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Full Interactive Setup:
+  sudo ./setup-subdomain.sh
+
+Quick Setup:
+  sudo ./quick-subdomain.sh <subdomain> <port> [email]
+  Example: sudo ./quick-subdomain.sh api.openplp.org 3000 your@email.com
+
+Management Interface:
+  sudo ./manage-subdomains.sh
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ CLOUDFLARE DNS CONFIGURATION                                             │
+└──────────────────────────────────────────────────────────────────────────┘
+
+For each subdomain, add:
+  Type:     A
+  Name:     <subdomain-part>  (e.g., "api" for api.openplp.org)
+  IPv4:     157.10.73.52
+  Proxy:    DNS Only (Gray Cloud) ⚠️ IMPORTANT
+  TTL:      Auto
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ COMMON NGINX COMMANDS                                                    │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Test Configuration:         sudo nginx -t
+Reload Nginx:               sudo systemctl reload nginx
+Restart Nginx:              sudo systemctl restart nginx
+Check Status:               sudo systemctl status nginx
+View All Configs:           ls -la /etc/nginx/sites-available/
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ LOG VIEWING                                                              │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Real-time Error Log:
+  sudo tail -f /var/log/nginx/<subdomain>_error.log
+
+Real-time Access Log:
+  sudo tail -f /var/log/nginx/<subdomain>_access.log
+
+Last 50 Lines:
+  sudo tail -n 50 /var/log/nginx/<subdomain>_error.log
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ SSL CERTIFICATE MANAGEMENT                                               │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Install SSL:                sudo certbot --nginx -d subdomain.openplp.org
+List Certificates:          sudo certbot certificates
+Renew All:                  sudo certbot renew
+Test Renewal:               sudo certbot renew --dry-run
+Delete Certificate:         sudo certbot delete --cert-name subdomain
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ SUBDOMAIN MANAGEMENT                                                     │
+└──────────────────────────────────────────────────────────────────────────┘
+
+List All:
+  ls -la /etc/nginx/sites-available/ | grep -v default
+
+Enable:
+  sudo ln -s /etc/nginx/sites-available/<subdomain> /etc/nginx/sites-enabled/
+  sudo systemctl reload nginx
+
+Disable:
+  sudo rm /etc/nginx/sites-enabled/<subdomain>
+  sudo systemctl reload nginx
+
+Edit Config:
+  sudo nano /etc/nginx/sites-available/<subdomain>
+  sudo nginx -t && sudo systemctl reload nginx
+
+Remove Completely:
+  sudo rm /etc/nginx/sites-{enabled,available}/<subdomain>
+  sudo systemctl reload nginx
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ TROUBLESHOOTING                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Check DNS Resolution:
+  dig subdomain.openplp.org
+  nslookup subdomain.openplp.org
+
+Test HTTP/HTTPS:
+  curl -I http://subdomain.openplp.org
+  curl -I https://subdomain.openplp.org
+
+Check Port Listening:
+  sudo netstat -tuln | grep :<port>
+  sudo ss -tuln | grep :<port>
+
+Check Service Status:
+  sudo systemctl status <service-name>
+
+View Nginx Error Log:
+  sudo tail -f /var/log/nginx/<subdomain>_error.log
+
+Test Configuration:
+  sudo nginx -t
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ FIREWALL (UFW)                                                           │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Allow Nginx:                sudo ufw allow 'Nginx Full'
+Check Status:               sudo ufw status
+Enable Firewall:            sudo ufw enable
+Allow Specific Port:        sudo ufw allow <port>
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ FILE LOCATIONS                                                           │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Nginx Configs:              /etc/nginx/sites-available/
+Enabled Sites:              /etc/nginx/sites-enabled/
+Error Logs:                 /var/log/nginx/<subdomain>_error.log
+Access Logs:                /var/log/nginx/<subdomain>_access.log
+SSL Certificates:           /etc/letsencrypt/live/<subdomain>/
+Auth Files:                 /etc/nginx/.htpasswd_<subdomain>
+Setup Summaries:            /root/subdomain-setup-<subdomain>.txt
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ COMMON PORTS                                                             │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Webmin:                     10000
+Node.js/Express:            3000, 5000, 8080
+React Dev Server:           3000
+Next.js:                    3000
+PostgreSQL:                 5432
+MongoDB:                    27017
+Redis:                      6379
+MySQL/MariaDB:              3306
+pgAdmin:                    5050
+MongoDB Express:            8081
+Grafana:                    3000
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ QUICK EXAMPLES                                                           │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Webmin Panel:
+  sudo ./quick-subdomain.sh webadmin.openplp.org 10000 your@email.com
+
+API Server:
+  sudo ./quick-subdomain.sh api.openplp.org 3000 your@email.com
+
+Database Admin:
+  sudo ./quick-subdomain.sh pgadmin.openplp.org 5050 your@email.com
+
+Monitoring Dashboard:
+  sudo ./quick-subdomain.sh monitor.openplp.org 8080 your@email.com
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ MAINTENANCE SCHEDULE                                                     │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Daily:      Check critical service logs
+Weekly:     Review all logs, check disk space
+Monthly:    Update system packages (sudo apt update && sudo apt upgrade)
+Quarterly:  Test SSL renewal, verify backups
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ EMERGENCY COMMANDS                                                       │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Nginx Won't Start:
+  sudo nginx -t                    # Check for errors
+  sudo journalctl -xe -u nginx     # View detailed errors
+  sudo systemctl status nginx      # Check status
+
+Site Down:
+  sudo systemctl restart nginx     # Restart Nginx
+  sudo systemctl restart <service> # Restart your service
+  
+Too Many Requests:
+  sudo nano /etc/nginx/sites-available/<subdomain>
+  # Add rate limiting
+  
+SSL Expired:
+  sudo certbot renew --force-renewal -d subdomain.openplp.org
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ SECURITY CHECKLIST                                                       │
+└──────────────────────────────────────────────────────────────────────────┘
+
+✓ SSL certificate installed
+✓ Basic authentication for admin panels
+✓ Firewall enabled (UFW)
+✓ Regular updates scheduled
+✓ Strong passwords used
+✓ DNS set to "DNS Only" in Cloudflare
+✓ Logs being monitored
+✓ Backup strategy in place
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║ Need Help? Check GETTING-STARTED.md for detailed instructions           ║
+╚══════════════════════════════════════════════════════════════════════════╝

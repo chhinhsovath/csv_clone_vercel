@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Form styles */
+input,
+textarea,
+select {
+  @apply rounded-md border border-slate-200 px-3 py-2 text-sm transition-colors;
+  @apply focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100;
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  @apply bg-slate-50 text-slate-500 cursor-not-allowed;
+}
+
+/* Button styles */
+button {
+  @apply transition-colors duration-200;
+}
+
+/* Loading animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Toast notification base */
+.toast {
+  @apply fixed bottom-4 right-4 z-50 rounded-md shadow-lg px-4 py-3 text-sm;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Status badge colors */
+.badge-success {
+  @apply bg-emerald-100 text-emerald-800;
+}
+
+.badge-error {
+  @apply bg-red-100 text-red-800;
+}
+
+.badge-warning {
+  @apply bg-amber-100 text-amber-800;
+}
+
+.badge-info {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.badge-building {
+  @apply bg-purple-100 text-purple-800;
+}
+
+/* Utility classes */
+.text-muted {
+  @apply text-slate-500;
+}
+
+.text-error {
+  @apply text-red-600;
+}
+
+.card {
+  @apply bg-white rounded-lg shadow border border-slate-200;
+}
+
+.card-hover {
+  @apply card transition-all hover:shadow-md hover:border-slate-300;
+}
